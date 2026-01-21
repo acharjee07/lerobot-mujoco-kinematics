@@ -247,7 +247,7 @@ $$
 e = \begin{bmatrix} u - c_x \\\\ v - c_y \end{bmatrix}
 $$
 
-*Where $(u, v)$ is the object centroid and $(c_x, c_y)$ is the camera optical center.*
+Where $(u, v)$ is the object centroid and $(c_x, c_y)$ is the camera optical center.
 
 **Velocity Mapping:**
 The camera-frame error is transformed into a base-frame velocity command:
