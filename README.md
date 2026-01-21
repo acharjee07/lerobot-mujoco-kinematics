@@ -33,10 +33,9 @@ The system follows a rigorous **Sim2Real pipeline**: every control algorithm is 
 
 ## 📸 Demo
 
-| **Simulation (MuJoCo)** | **Real World (SO-100)** |
-|:-----------------------:|:-----------------------:|
-| *[INSERT GIF OF SIMULATION HERE]* | <img src="docs/hardware_vis.gif" width="300" alt="Hardware Visualization"> |
-| *Verifying Jacobian control in physics engine* | *Deploying same code to hardware* |
+<img src="docs/hardware_vis.gif" width="800" alt="Hardware Visualization">
+
+*Deploying same code to hardware*
 
 ---
 
