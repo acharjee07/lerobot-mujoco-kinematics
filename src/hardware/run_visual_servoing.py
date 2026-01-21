@@ -1,158 +1,191 @@
 import time
 import numpy as np
-import mujoco
-import mujoco.viewer
-
-# --- PROJECT IMPORTS ---
-from src.simulation.sim_utils import set_initial_pose, send_position_command
+import sympy as sp
+import cv2
+from src.hardware.hardware_utils import load_calibration, setup_motors
 from src.kinematics import get_forward_kinematics
-# Use the cached Jacobian solver from your library
-from src.kinematics.velocity import get_jacobian_solver
+from src.kinematics.jacobian_symbolic import J_total, theta1, theta2, theta3, theta4, theta5
+from src.kinematics.jacobian_symbolic import l1, l2, l3, l4, l5, l6, l7, l8, l9 
+from src.vision.detector import get_red_object
+from src.config import port as PORT_ID, robot_name as ROBOT_NAME, camera_index as CAMERA_INDEX
 
 # ==========================================
-# 1. SAFETY CONFIGURATION
+# 1. CONFIGURATION
 # ==========================================
-MAX_JOINT_VEL = 1.5         # rad/s (approx 85 deg/s)
-MIN_MANIPULABILITY = 0.001  # Singularity threshold
-DT = 0.01                   # Time step
+# --- VISION PARAMETERS ---
+OPTICAL_CENTER = (320, 240)  # (cx, cy)
 
-# Joint Limits (Degrees)
+# --- WINDOW / DEADBAND SETTINGS ---
+# The robot will STOP if the object is within this many pixels of the center.
+# Increase this if it still jitters. Decrease for more precision.
+DEADBAND = 50  
+
+# --- DIRECTION TUNING ---
+INVERT_X = -1.0  
+INVERT_Y = -1.0  
+
+# --- CONTROL GAINS ---
+GAIN_X = 0.001   
+GAIN_Y = 0.001   
+
+# --- ROBOT LIMITS ---
+MAX_VEL_DEG = 10         
 JOINT_LIMITS = {
-    'shoulder_pan':  (-100, 100),
-    'shoulder_lift': (-100, 100),
-    'elbow_flex':    (-100, 100),
-    'wrist_flex':    (-100, 100),
+    'shoulder_pan':  (-120, 120),
+    'shoulder_lift': (-110, 110), 
+    'elbow_flex':    (-110, 110),
+    'wrist_flex':    (-110, 110),
     'wrist_roll':    (-150, 150)
 }
 
-# ==========================================
-# 2. SAFETY FUNCTION
-# ==========================================
-def check_safety_and_clip(J_pos, q_dot_raw, current_angles_deg):
-    """
-    Filters the requested velocity (q_dot_raw) through safety checks.
-    Returns: (q_dot_safe, is_safe_to_continue)
-    """
-    # A. Singularity Check (Manipulability Measure)
-    # w = sqrt(det(J * J.T))
-    try:
-        # We add a tiny epsilon to J*J.T diagonal for stability if needed
-        manipulability = np.sqrt(np.linalg.det(J_pos @ J_pos.T))
-    except:
-        manipulability = 0
-        
-    if manipulability < MIN_MANIPULABILITY:
-        print(f"⚠️ DANGER: Singularity approaching! (w={manipulability:.5f})")
-        # In a real robot, you might want to stop or dampen motion here
-        return np.zeros_like(q_dot_raw), False 
-
-    # B. Velocity Clamping
-    q_dot_safe = np.clip(q_dot_raw, -MAX_JOINT_VEL, MAX_JOINT_VEL)
-    
-    # C. Joint Limit Prediction
-    keys = ['shoulder_pan', 'shoulder_lift', 'elbow_flex', 'wrist_flex', 'wrist_roll']
-    current_vals = [current_angles_deg[k] for k in keys]
-    
-    for i, val in enumerate(current_vals):
-        # Predict next position
-        predicted_val = val + np.degrees(q_dot_safe[i] * DT)
-        min_lim, max_lim = JOINT_LIMITS[keys[i]]
-        
-        # If violating limits, only allow motion that moves AWAY from the limit
-        if predicted_val < min_lim:
-            if q_dot_safe[i] < 0: # Trying to go more negative
-                print(f"⚠️ LIMIT: Joint {keys[i]} hit MIN ({predicted_val:.1f})")
-                q_dot_safe[i] = 0
-        elif predicted_val > max_lim:
-            if q_dot_safe[i] > 0: # Trying to go more positive
-                print(f"⚠️ LIMIT: Joint {keys[i]} hit MAX ({predicted_val:.1f})")
-                q_dot_safe[i] = 0
-            
-    return q_dot_safe, True
+# --- CAMERA TO END-EFFECTOR TRANSFORM ---
+R_CAM_TO_EE = np.array([
+    [-1, 0, 0],   # Robot X (Forward): OFF (0)
+    [0, 0, 0],   # Robot Y (Left/Right): Controlled by Camera X
+    [0, 1, 0]    # Robot Z (Up/Down): Controlled by Camera Y
+])
 
 # ==========================================
-# 3. MAIN SIMULATION LOOP
+# 2. JACOBIAN SETUP
 # ==========================================
+print("Compiling Jacobian...")
+link_values = {
+    l1: 0.0388353, l2: 0.0624, l3: 0.0303992, l4: 0.0542,
+    l5: 0.11257, l6: 0.028, l7: 0.1349, l8: 0.0611, l9: 0.1034
+}
+J_with_constants = J_total.subs(link_values)
+calculate_J_fast = sp.lambdify(
+    (theta1, theta2, theta3, theta4, theta5), 
+    J_with_constants, "numpy"
+)
+
+def get_simple_error(cap):
+    """ Returns X and Y pixel error. """
+    ret, frame = cap.read()
+    if not ret: return None, False, None
+    
+    frame = cv2.resize(frame, (640, 480))
+    cx, cy, area, found, debug_frame = get_red_object(frame, draw_debug=True)
+    cx_opt, cy_opt = OPTICAL_CENTER
+    
+    if not found:
+        return 0, 0, False, debug_frame
+
+    error_x = (cx - cx_opt)
+    error_y = (cy - cy_opt)
+    
+    return error_x, error_y, True, debug_frame
+
 def main():
-    m = mujoco.MjModel.from_xml_path('model/so101_new_calib.xml')
-    d = mujoco.MjData(m)
+    print("Connecting to Robot...")
+    calibration = load_calibration(ROBOT_NAME)
+    bus = setup_motors(calibration, PORT_ID)
+    
+    print(f"Opening Camera Index: {CAMERA_INDEX}")
+    cap = cv2.VideoCapture(CAMERA_INDEX)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-    # Initial Setup
-    initial_config = {
-        'shoulder_pan': 0.0, 'shoulder_lift': 0, 'elbow_flex': 0,
-        'wrist_flex': 0.0, 'wrist_roll': 0.0, 'gripper': 0
-    }
-    set_initial_pose(d, initial_config)
-    send_position_command(d, initial_config)
+    for motor in bus.motors:
+        bus.write("P_Coefficient", motor, 25)   
+        bus.write("D_Coefficient", motor, 15)  
+        bus.write("Torque_Enable", motor, 1)
 
-    # Target & Gains
-    target_pos = np.array([0.20, 0.20, 0.10]) 
-    Kp = 2.0 
-    Kd = 0.1 
+    q_actual = bus.sync_read("Present_Position")
+    q_virtual = q_actual.copy()
+    
+    print("\n>>> TRACKING STARTED with DEADBAND.")
+    gui_available = True
+    time.sleep(1.0)
 
-    # Get Fast Jacobian Function
-    calc_J = get_jacobian_solver()
-
-    with mujoco.viewer.launch_passive(m, d) as viewer:
-        # Visualizer: Green Target Sphere
-        mujoco.mjv_initGeom(
-            viewer.user_scn.geoms[0],
-            type=mujoco.mjtGeom.mjGEOM_SPHERE,
-            size=np.array([0.015, 0.015, 0.015]),
-            pos=target_pos,
-            mat=np.eye(3).flatten(),
-            rgba=np.array([0, 1, 0, 0.5], dtype=np.float32)
-        )
-        viewer.user_scn.ngeom = 1
-        
-        current_q_dict = initial_config.copy()
-        prev_error_vec = np.zeros(3)
-
-        print("Starting Safe Velocity Control Loop...")
-
-        while viewer.is_running():
-            # 1. Get State
-            curr_pos_vec, _ = get_forward_kinematics(current_q_dict)
-            curr_pos_vec = np.array(curr_pos_vec).flatten()
+    try:
+        while True:
+            loop_start = time.time()
             
-            # Prepare angles for Jacobian (Degrees -> Radians)
-            th_vals = [np.deg2rad(current_q_dict[k]) for k in 
-                       ['shoulder_pan', 'shoulder_lift', 'elbow_flex', 'wrist_flex', 'wrist_roll']]
+            # 1. GET VISION DATA
+            e_x, e_y, found, frame = get_simple_error(cap)
             
-            J = calc_J(*th_vals)
+            # 2. CALCULATE VELOCITY
+            v_cam = np.zeros(3)
             
-            # 2. PD Control
-            error_vec = target_pos - curr_pos_vec
-            error_derivative = (error_vec - prev_error_vec) / DT
-            v_desired = (Kp * error_vec) + (Kd * error_derivative)
-            prev_error_vec = error_vec
-            
-            dist = np.linalg.norm(error_vec)
-            if dist < 0.002:
-                print(f"Target Reached! Final Error: {dist:.5f}")
-                break
+            if found:
+                # --- DEADBAND LOGIC ---
+                # Check if object is inside the "Stop Window"
+                if abs(e_x) < DEADBAND and abs(e_y) < DEADBAND:
+                    v_cam = np.zeros(3) # STOP
+                    status_msg = "Target in Window (HOLDING)"
+                else:
+                    # Move if outside window
+                    v_cam[0] = -e_x * GAIN_X * INVERT_X
+                    v_cam[1] = -e_y * GAIN_Y * INVERT_Y
+                    status_msg = "Target Outside (MOVING)"
                 
-            # 3. Inverse Kinematics (Velocity Level)
-            J_pos = J[0:3, :] 
-            q_dot_raw = np.linalg.pinv(J_pos, rcond=1e-2) @ v_desired
-            
-            # 4. *** APPLY SAFETY LAYER ***
-            q_dot_safe, is_safe = check_safety_and_clip(J_pos, q_dot_raw, current_q_dict)
-            
-            if not is_safe:
-                print("Safety Stop Triggered. Halting.")
-                break
+                v_cam[2] = 0.0 # Depth locked
 
-            # 5. Integrate & Move
+                # 3. ROBOT KINEMATICS
+                q_actual = bus.sync_read("Present_Position")
+                curr_pos, R_0_EE = get_forward_kinematics(q_actual) 
+                
+                v_base = R_0_EE @ (R_CAM_TO_EE @ v_cam)
+                
+                th_vals = [np.deg2rad(q_actual[k]) for k in ['shoulder_pan', 'shoulder_lift', 'elbow_flex', 'wrist_flex', 'wrist_roll']]
+                J = calculate_J_fast(*th_vals)
+                J_pos = J[0:3, :]
+                
+                q_dot_rad = np.linalg.pinv(J_pos, rcond=1e-2) @ v_base
+                raw_q_dot_deg = np.degrees(q_dot_rad)
+                
+                print(f"Err: {int(e_x)}, {int(e_y)} | {status_msg}".ljust(60), end='\r')
+            else:
+                raw_q_dot_deg = np.zeros(5)
+                if not gui_available: print("Target Lost...".ljust(60), end='\r')
+
+            # 4. GUI VISUALIZATION
+            if frame is not None and gui_available:
+                cx, cy = OPTICAL_CENTER
+                
+                # Draw the Deadband Window (Blue Box)
+                # If target is inside this box, robot stops.
+                top_left = (cx - DEADBAND, cy - DEADBAND)
+                bottom_right = (cx + DEADBAND, cy + DEADBAND)
+                cv2.rectangle(frame, top_left, bottom_right, (255, 0, 0), 2)
+                
+                # Center Cross
+                cv2.line(frame, (cx-10, cy), (cx+10, cy), (0, 255, 0), 1)
+                cv2.line(frame, (cx, cy-10), (cx, cy+10), (0, 255, 0), 1)
+                
+                if found:
+                    # Draw Arrow only if moving
+                    if np.linalg.norm(v_cam) > 0:
+                        scale = 2000
+                        start = (cx, cy)
+                        end = (int(cx + v_cam[0]*scale), int(cy + v_cam[1]*scale))
+                        cv2.arrowedLine(frame, start, end, (0, 255, 255), 4, tipLength=0.3)
+
+                try:
+                    cv2.imshow("Deadband Tracker", frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'): break
+                except: gui_available = False
+
+            # 5. SEND TO MOTORS
+            safe_vel = np.clip(raw_q_dot_deg, -MAX_VEL_DEG, MAX_VEL_DEG)
             keys = ['shoulder_pan', 'shoulder_lift', 'elbow_flex', 'wrist_flex', 'wrist_roll']
             for i, key in enumerate(keys):
-                delta_rad = q_dot_safe[i] * DT
-                current_q_dict[key] += np.degrees(delta_rad)
-                
-            send_position_command(d, current_q_dict)
-            mujoco.mj_step(m, d)
-            viewer.sync()
-            time.sleep(DT)
+                q_virtual[key] += safe_vel[i] * 0.05 
+                min_l, max_l = JOINT_LIMITS[key]
+                q_virtual[key] = np.clip(q_virtual[key], min_l, max_l)
+            
+            bus.sync_write("Goal_Position", q_virtual, normalize=True)
+            
+            elapsed = time.time() - loop_start
+            if elapsed < 0.03: time.sleep(0.03 - elapsed)
+
+    except KeyboardInterrupt:
+        print("\nStopped.")
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        for motor in bus.motors: bus.write("Torque_Enable", motor, 0)
 
 if __name__ == "__main__":
     main()
