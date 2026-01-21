@@ -62,19 +62,21 @@ The system follows a rigorous **Sim2Real pipeline**: every control algorithm is 
 ### Prerequisites
 - **OS:** Linux (Ubuntu 20.04/22.04 recommended) or Windows (WSL2 supported for Sim).
 - **Hardware:** SO-101 Robot Arm, USB Camera.
+- **Python:** 3.8 or higher
 
-### 1. Clone & Environment Setup
-We use conda to manage dependencies and a robust environment.yml for reproducible builds.
+### 1. Clone & Install
+Clone the repository and install in editable mode.
 
 ```bash
 # Clone the repository
 git clone https://github.com/acharjee07/lerobot-mujoco-kinematics.git
 cd lerobot-mujoco-kinematics
 
-# Create isolated environment (Installs LeRobot, MuJoCo, OpenCV, SymPy)
-conda env create -f environment.yml
-conda activate lerobot
+# Install in editable mode (recommended for development)
+pip install -e .
 ```
+
+This will install all required dependencies including LeRobot, MuJoCo, NumPy, and other libraries.
 
 ### 2. Permissions (Linux Only)
 Grant permission to access the USB serial port (for the robot) and video device (for the camera).

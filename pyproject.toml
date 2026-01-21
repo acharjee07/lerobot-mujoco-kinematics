@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lerobot-mujoco-kinematics"
+version = "0.1.0"
+description = "Kinematics simulation and hardware control for LeRobot SO-101 with MuJoCo"
+authors = [
+    {name = "Sanjay", email = "your.email@example.com"},
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "mujoco",
+    "lerobot",
+    "draccus",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
