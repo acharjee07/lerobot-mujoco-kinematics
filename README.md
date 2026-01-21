@@ -33,10 +33,9 @@ The system follows a rigorous **Sim2Real pipeline**: every control algorithm is 
 
 ## 📸 Demo
 
-| **Simulation (MuJoCo)** | **Real World (SO-100)** |
-|:-----------------------:|:-----------------------:|
-| *[INSERT GIF OF SIMULATION HERE]* | *[INSERT GIF OF REAL ROBOT HERE]* |
-| *Verifying Jacobian control in physics engine* | *Deploying same code to hardware* |
+<img src="https://raw.githubusercontent.com/acharjee07/lerobot-mujoco-kinematics/master/docs/hardware_vis.gif" width="400" alt="Hardware Visualization">
+
+*Deploying same code to hardware*
 
 ---
 
