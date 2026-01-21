@@ -167,19 +167,21 @@ The following link dimensions were measured and used to derive the Denavit-Harte
 
 *Note: The effective upper arm length used in calculations is $\sqrt{l_5^2 + l_6^2}$.*
 
-### 3. Forward Kinematics (DH Table)
-The transformation matrix ${}^{i-1}T_{i}$ is derived using the standard DH convention:
+### 3. Forward Kinematics (DH Parameters)
+The Denavit-Hartenberg parameters are derived as follows, matching the handwritten derivation:
 
-| Frame ($i$) | $\theta_i$ (Rotation) | $d_i$ (Offset) | $a_i$ (Length) | $\alpha_i$ (Twist) |
+| Frame ($i-1 \to i$) | $a_i$ (Link Length) | $\alpha_i$ (Link Twist) | $d_i$ (Link Offset) | $\theta_i$ (Joint Angle) |
 | :--- | :--- | :--- | :--- | :--- |
-| **$W \to 1$** | $0$ | $l_2$ | $l_1$ | $0$ |
-| **$1 \to 2$** | $\theta_1$ | $-l_4$ | $l_3$ | $\pi/2$ |
-| **$2 \to 3$** | $\theta_2 + (\pi - K)$ | $-\sqrt{l_5^2 + l_6^2}$ | $0$ | $0$ |
-| **$3 \to 4$** | $\theta_3 + K$ | $-l_7$ | $0$ | $0$ |
-| **$4 \to 5$** | $\theta_4 + \pi/2$ | $0$ | $0$ | $\pi/2$ |
-| **$5 \to Tool$** | $\theta_5 + \pi/2$ | $-(l_9 + l_8)$ | $0$ | $-\pi/2$ |
+| **$0 \to 1$** | $l_0$ | $-\pi$ | $l_2$ | $0$ |
+| **$1 \to 2$** | $l_2$ | $\pi/2$ | $-l_3$ | $\theta_1$ |
+| **$2 \to 3$** | $-\sqrt{l_4^2 + l_5^2}$ | $0$ | $0$ | $\pi - \tan^{-1}(l_4/l_5) + \theta_2^*$ |
+| **$3 \to 4$** | $-l_6$ | $0$ | $0$ | $\tan^{-1}(l_4/l_5) + \theta_3^*$ |
+| **$4 \to 5$** | $0$ | $\pi/2$ | $0$ | $\pi/2 + \theta_4^*$ |
+| **$5 \to t$** | $0$ | $-\pi/2$ | $-l_7$ | $\pi/2 - \theta_5^*$ |
 
-*Where $K = \text{atan2}(l_5, l_6)$.*
+*Note: $\theta^*$ denotes the active joint variable.*
+
+
 
 ### 3. Inverse Kinematics (Geometric Approach)
 We derived a computationally efficient geometric solution for the first 4 DOFs. For the complete step-by-step derivation, please refer to the **[Handwritten Calculations (PDF)](docs/IK_Calculation.pdf)**.
