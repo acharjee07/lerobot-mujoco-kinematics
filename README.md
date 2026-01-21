@@ -182,7 +182,7 @@ The transformation matrix ${}^{i-1}T_{i}$ is derived using the standard DH conve
 *Where $K = \text{atan2}(l_5, l_6)$.*
 
 ### 3. Inverse Kinematics (Geometric Approach)
-We derived a computationally efficient geometric solution for the first 4 DOFs. For the complete step-by-step derivation, please refer to the **[Handwritten Calculations (PDF)](docs/IK_derivation.pdf)**.
+We derived a computationally efficient geometric solution for the first 4 DOFs. For the complete step-by-step derivation, please refer to the **[Handwritten Calculations (PDF)](docs/IK_Calculation.pdf)**.
 
 **Base Rotation ($\theta_1$):**
 Determined by projecting the target coordinate vector onto the XY plane:
