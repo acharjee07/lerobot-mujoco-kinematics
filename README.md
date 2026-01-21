@@ -248,9 +248,11 @@ $$e = \begin{bmatrix} u - c_x \\ v - c_y \end{bmatrix}$$
 **Velocity Mapping:**
 The camera-frame error is transformed into a base-frame velocity command:
 
-$$v_{base} = R_{0}^{EE} \cdot R_{cam}^{EE} \cdot \begin{bmatrix} -k_x e_x \\ -k_y e_y \\ 0 \end{bmatrix}$$
+```
+v_base = R_0^EE * R_cam^EE * [-k_x * e_x, -k_y * e_y, 0]^T
+```
 
-This vector $v_{base}$ is then fed into the Differential Kinematics solver to drive the robot.
+This vector `v_base` is then fed into the Differential Kinematics solver to drive the robot.
 
 ## 📜 License
 
