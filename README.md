@@ -33,7 +33,7 @@ The system follows a rigorous **Sim2Real pipeline**: every control algorithm is 
 
 ## 📸 Demo
 
-<img src="https://raw.githubusercontent.com/acharjee07/lerobot-mujoco-kinematics/master/docs/hardware_vis.gif" width="400" alt="Hardware Visualization">
+<img src="https://raw.githubusercontent.com/acharjee07/lerobot-mujoco-kinematics/master/docs/hardware_vis.gif" width="900" alt="Hardware Visualization">
 
 *Deploying same code to hardware*
 
