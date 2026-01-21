@@ -122,7 +122,7 @@ Always verify your control logic in MuJoCo before turning on the motors.
 
 ```bash
 # Run Velocity Control with Safety Layer in Sim
-python -m src.simulation.run_sim_safe_velocity
+python -m src.simulation.run_sim_velocity
 ```
 
 ### 2. Real Hardware (Deployment)
