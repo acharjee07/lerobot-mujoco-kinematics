@@ -1,0 +1,13 @@
+# Robot Hardware Settings
+robot_name: "so101_follower"
+port: "/dev/ttyACM1"   # Change to COM6 for Windows
+
+# Vision Settings
+camera_index: 0        # Try 0, 1, or 2
+resolution_width: 640
+resolution_height: 480
+
+# Visual Servoing Gains
+deadband: 50           # Pixels
+gain_x: 0.001
+gain_y: 0.001

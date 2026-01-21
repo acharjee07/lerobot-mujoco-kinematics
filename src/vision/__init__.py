@@ -1,0 +1,1 @@
+from .detector import get_red_object

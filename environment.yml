@@ -1,0 +1,28 @@
+name: lerobot
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # 1. Core Python Version (3.10 is most stable for MuJoCo/LeRobot)
+  - python=3.10
+  - pip
+
+  # 2. Pip Dependencies
+  - pip:
+      - numpy
+      - sympy
+      - mujoco
+      - pyyaml
+      
+      # Vision Dependencies (Installs the GUI version, avoiding the "headless" error)
+      - opencv-python
+      
+      # Hardware Dependencies
+      - feetech-servo-sdk==1.0.0
+      
+      # Install LeRobot directly from GitHub with Dynamixel support
+      # (This saves the user from manually cloning and installing it)
+      - "lerobot[dynamixel] @ git+https://github.com/huggingface/lerobot.git"
+      
+      # Install YOUR project in editable mode (so you can import src anywhere)
+      - -e .
