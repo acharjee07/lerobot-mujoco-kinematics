@@ -242,8 +242,9 @@ $$\dot{q}_{cmd} = \alpha \cdot \dot{q}_{raw} + (1 - \alpha) \cdot \dot{q}_{prev}
 We implemented an Image-Based Visual Servoing (IBVS) controller that maps 2D pixel error directly to 3D base velocity, locking the depth axis.
 
 **Pixel Error:**
+
 $$
-e = \begin{bmatrix} u - c_x \\ v - c_y \end{bmatrix}
+e = \begin{bmatrix} u - c_x \\\\ v - c_y \end{bmatrix}
 $$
 
 *Where $(u, v)$ is the object centroid and $(c_x, c_y)$ is the camera optical center.*
@@ -252,7 +253,7 @@ $$
 The camera-frame error is transformed into a base-frame velocity command:
 
 $$
-v_{base} = R_{0}^{EE} \cdot R_{cam}^{EE} \cdot \begin{bmatrix} -k_x \cdot e_x \\ -k_y \cdot e_y \\ 0 \end{bmatrix}
+v_{base} = R_{0}^{EE} \cdot R_{cam}^{EE} \cdot \begin{bmatrix} -k_x \cdot e_x \\\\ -k_y \cdot e_y \\\\ 0 \end{bmatrix}
 $$
 
 This vector $v_{base}$ is then fed into the Differential Kinematics solver to drive the robot.
