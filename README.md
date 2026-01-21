@@ -50,7 +50,7 @@ We use conda to manage dependencies and a robust environment.yml for reproducibl
 
 ```bash
 # Clone the repository
-git clone [https://github.com/YOUR_USERNAME/lerobot-mujoco-kinematics.git](https://github.com/YOUR_USERNAME/lerobot-mujoco-kinematics.git)
+git clone https://github.com/acharjee07/lerobot-mujoco-kinematics.git
 cd lerobot-mujoco-kinematics
 
 # Create isolated environment (Installs LeRobot, MuJoCo, OpenCV, SymPy)
