@@ -1,4 +1,22 @@
-# Sim2Real Kinematics & Visual Servoing Stack (5-DOF)
+---
+title: LeRobot SO-101 Kinematics
+emoji: 🤖
+colorFrom: yellow
+colorTo: gray
+sdk: static
+pinned: false
+tags:
+- robotics
+- kinematics
+- lerobot
+- so-101
+- mujoco
+- visual-servoing
+---
+
+
+# LeRobot SO-101 Kinematics & Visual Servoing
+**Kinematic modeling, DH parameters, and simulation for the LeRobot SO-101 manipulator.**
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
 [![Simulation](https://img.shields.io/badge/Simulation-MuJoCo-orange?logo=openaigym)](https://mujoco.org/)
