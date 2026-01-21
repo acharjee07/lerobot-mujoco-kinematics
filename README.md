@@ -5,9 +5,11 @@
 [![Hardware](https://img.shields.io/badge/Hardware-LeRobot-yellow)](https://github.com/huggingface/lerobot)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
-**A modular, safety-critical control stack for 5-DOF robotic manipulators (SO-100/101).**
+**A modular, safety-critical control stack designed specifically for the SO-101 robotic manipulator.**
 
-This project implements a complete **Sim2Real pipeline**, featuring an analytical kinematics engine derived from scratch, high-fidelity MuJoCo simulation, and a real-time visual servoing controller deployed on physical hardware via the Hugging Face LeRobot framework.
+This project is a complete, ground-up implementation of fundamental robotics kinematics. Instead of relying on "black box" solvers, the kinematics engine—including Forward Kinematics and Jacobian-based velocity control—was derived analytically from scratch.
+
+The system follows a rigorous **Sim2Real pipeline**: every control algorithm is first validated in a high-fidelity **MuJoCo** simulation to ensure stability, and then seamlessly deployed to the physical hardware using the **Hugging Face LeRobot** framework.
 
 ---
 
@@ -34,28 +36,14 @@ This project implements a complete **Sim2Real pipeline**, featuring an analytica
 * **Computer Vision:** Integrated OpenCV pipeline for real-time object detection (Color Thresholding + Contour Analysis).
 * **Visual Feedback Loop:** Implemented a Proportional (P) controller mapping pixel-space error directly to joint-space velocities via the pseudo-inverse Jacobian.
 
-### 4. Professional Software Architecture
-* **Sim2Real Parity:** The exact same controller code runs both the MuJoCo simulation and the physical robot, enabling safe offline testing.
-* **Config-Driven:** All hardware parameters (ports, gains, limits) are decoupled from code in YAML configuration files.
-
 ---
 
-## 🏗️ System Architecture
-
-```mermaid
-graph LR
-    A[Camera Input] -->|OpenCV| B(Vision Module);
-    B -->|Pixel Error| C{Controller};
-    C -->|Jacobian Solver| D[Velocity Kinematics];
-    D -->|Joint Velocities| E[Safety Layer];
-    E -->|Safe Commands| F[Hardware / Sim];
-```
 
 ## 🛠️ Installation
 
 ### Prerequisites
 - **OS:** Linux (Ubuntu 20.04/22.04 recommended) or Windows (WSL2 supported for Sim).
-- **Hardware:** SO-100/101 Robot Arm, USB Camera.
+- **Hardware:** SO-101 Robot Arm, USB Camera.
 
 ### 1. Clone & Environment Setup
 We use conda to manage dependencies and a robust environment.yml for reproducible builds.
@@ -91,6 +79,22 @@ camera_index: 0               # Camera ID (0, 1, or 2)
 deadband: 50                  # Visual Servoing Stop Radius (pixels)
 ```
 
+### LeRobot Calibration Setup
+
+LeRobot uses calibration files to map joint positions to motor encoder values. These JSON files contain the calibration data for your specific robot hardware.
+
+1. **Place Calibration Files**: Copy the appropriate calibration file to LeRobot's expected location:
+
+```bash
+# For follower robot (most common)
+cp calibration_files/so101_follower.json ~/.cache/huggingface/lerobot/calibration/so101_follower.json
+
+# For leader robot (if using teleoperation)
+cp calibration_files/so101_leader.json ~/.cache/huggingface/lerobot/calibration/so101_leader.json
+```
+
+**Note**: These calibration files are specific to your SO-101 robot hardware. If you have different motor configurations, you'll need to recalibrate using LeRobot's calibration tools.
+
 ## 🕹️ Usage
 
 ### 1. Simulation (Test Safety First)
@@ -112,7 +116,6 @@ python -m src.hardware.run_visual_servoing --debug
 python -m src.hardware.run_real_ik
 ```
 
-**Tip:** Use `--help` on any script to see available command-line overrides.
 
 ## 📂 Project Structure
 
@@ -141,15 +144,59 @@ lerobot-mujoco-kinematics/
 
 ## 🔬 Mathematical Background
 
-This project avoids "black box" IK solvers. Instead, the Jacobian $J(\theta)$ is derived analytically:
+### 1. Robot Kinematic Skeleton
+The SO-101 manipulator is modeled as a series of rigid links connected by revolute joints. The kinematic chain is defined by the link lengths ($l_1 \dots l_9$) and joint angles ($\theta_1 \dots \theta_5$) shown below.
 
-$$\dot{x} = J(\theta) \dot{\theta}$$
+![Kinematic Skeleton Diagram](docs/skltn.png)
 
-To control the robot, we solve for joint velocities $\dot{\theta}$ using the Moore-Penrose pseudo-inverse:
 
-$$\dot{\theta} = J^{\dagger} (\dot{x}_{target} + K_p e)$$
+### 2. Geometric Parameters
+The following link dimensions were measured and used to derive the Denavit-Hartenberg (DH) parameters.
 
-Where $J^{\dagger}$ allows us to handle the redundant DOF and minimize the least-squares error when the target is out of reach.
+| Parameter | Value (meters) | Description |
+| :--- | :--- | :--- |
+| **$l_1$** | `0.0388` | Base horizontal offset |
+| **$l_2$** | `0.0624` | Base vertical offset |
+| **$l_3$** | `0.0304` | Shoulder offset (lateral) |
+| **$l_4$** | `0.0542` | Shoulder offset (vertical) |
+| **$l_5$** | `0.1126` | Upper arm length (primary) |
+| **$l_6$** | `0.0280` | Upper arm length (secondary/offset) |
+| **$l_7$** | `0.1349` | Forearm length |
+| **$l_8$** | `0.0611` | Wrist length |
+| **$l_9$** | `0.1034` | Gripper/Tool length |
+
+*Note: The effective upper arm length used in calculations is $\sqrt{l_5^2 + l_6^2}$.*
+
+### 3. Forward and Inverse Kinematics
+
+The kinematics solutions and derivations are maintained privately. Local solution files are required to run the examples.
+
+### 4. Differential Kinematics (Velocity Control)
+For smooth trajectory tracking, we use the Jacobian matrix $J(q)$ which relates joint velocities to end-effector spatial velocities:
+
+$$v_e = \begin{bmatrix} v \\ \omega \end{bmatrix} = J_{total}(q)\dot{q}$$
+
+**Control Law:**
+We solve for joint velocities using the Moore-Penrose pseudo-inverse with a low-pass smoothing filter ($\alpha=0.2$) to reduce hardware jitter:
+
+$$\dot{q}_{raw} = J^{\dagger}(q) \cdot (X_{target} - X_{current})$$
+$$\dot{q}_{cmd} = \alpha \cdot \dot{q}_{raw} + (1 - \alpha) \cdot \dot{q}_{prev}$$
+
+---
+
+### 5. Simplified 2D Visual Servoing
+We implemented an Image-Based Visual Servoing (IBVS) controller that maps 2D pixel error directly to 3D base velocity, locking the depth axis.
+
+**Pixel Error:**
+$$e = \begin{bmatrix} u - c_x \\ v - c_y \end{bmatrix}$$
+*Where $(u, v)$ is the object centroid and $(c_x, c_y)$ is the camera optical center.* 
+
+**Velocity Mapping:**
+The camera-frame error is transformed into a base-frame velocity command:
+
+$$v_{base} = R_{0}^{EE} \cdot R_{cam}^{EE} \cdot \begin{bmatrix} -k_x e_x \\ -k_y e_y \\ 0 \end{bmatrix}$$
+
+This vector $v_{base}$ is then fed into the Differential Kinematics solver to drive the robot.
 
 ## 📜 License
 
