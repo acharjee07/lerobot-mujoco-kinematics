@@ -243,6 +243,7 @@ We implemented an Image-Based Visual Servoing (IBVS) controller that maps 2D pix
 
 **Pixel Error:**
 $$e = \begin{bmatrix} u - c_x \\ v - c_y \end{bmatrix}$$
+
 *Where $(u, v)$ is the object centroid and $(c_x, c_y)$ is the camera optical center.* 
 
 **Velocity Mapping:**
