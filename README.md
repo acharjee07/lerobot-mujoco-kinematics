@@ -262,8 +262,8 @@ This vector $v_{base}$ is then fed into the Differential Kinematics solver to dr
 This project is open-source under the Apache 2.0 License.
 
 ## 🤝 Acknowledgments
-
-- **[iSET Lab](https://iset-lab.github.io/):** This project was developed as part of my research at the **Intelligent Systems and Emerging Technologies (iSET) Lab** at the University of Texas at Arlington. Special thanks to the lab and my supervisor for providing the hardware and resources necessary for this project.
+- **[iSET Lab](https://iset-lab.github.io/)**
+<!-- - **[iSET Lab](https://iset-lab.github.io/):** This project was developed as part of my research at the **Intelligent Systems and Emerging Technologies (iSET) Lab** at the University of Texas at Arlington. Special thanks to the lab and my supervisor for providing the hardware and resources necessary for this project. -->
 - **Hugging Face LeRobot** for the excellent hardware abstraction layer.
 - **MuJoCo** for the physics engine.
 
