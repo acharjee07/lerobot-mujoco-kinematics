@@ -33,10 +33,9 @@ The system follows a rigorous **Sim2Real pipeline**: every control algorithm is 
 
 ## 📸 Demo
 
-| **Simulation (MuJoCo)** | **Real World (SO-100)** |
-|:-----------------------:|:-----------------------:|
-| *[INSERT GIF OF SIMULATION HERE]* | *[INSERT GIF OF REAL ROBOT HERE]* |
-| *Verifying Jacobian control in physics engine* | *Deploying same code to hardware* |
+<img src="https://raw.githubusercontent.com/acharjee07/lerobot-mujoco-kinematics/master/docs/hardware_vis.gif" width="900" alt="Hardware Visualization">
+
+*Deploying same code to hardware*
 
 ---
 
@@ -208,14 +207,19 @@ $$\dot{q}_{cmd} = \alpha \cdot \dot{q}_{raw} + (1 - \alpha) \cdot \dot{q}_{prev}
 We implemented an Image-Based Visual Servoing (IBVS) controller that maps 2D pixel error directly to 3D base velocity, locking the depth axis.
 
 **Pixel Error:**
-$$e = \begin{bmatrix} u - c_x \\ v - c_y \end{bmatrix}$$
 
-*Where $(u, v)$ is the object centroid and $(c_x, c_y)$ is the camera optical center.* 
+$$
+e = \begin{bmatrix} u - c_x \\\\ v - c_y \end{bmatrix}
+$$
+
+Where $(u, v)$ is the object centroid and $(c_x, c_y)$ is the camera optical center.
 
 **Velocity Mapping:**
 The camera-frame error is transformed into a base-frame velocity command:
 
-$$v_{base} = R_{0}^{EE} \cdot R_{cam}^{EE} \cdot \begin{bmatrix} -k_x e_x \\ -k_y e_y \\ 0 \end{bmatrix}$$
+$$
+v_{base} = R_{0}^{EE} \cdot R_{cam}^{EE} \cdot \begin{bmatrix} -k_x \cdot e_x \\\\ -k_y \cdot e_y \\\\ 0 \end{bmatrix}
+$$
 
 This vector $v_{base}$ is then fed into the Differential Kinematics solver to drive the robot.
 
@@ -224,7 +228,8 @@ This vector $v_{base}$ is then fed into the Differential Kinematics solver to dr
 This project is open-source under the Apache 2.0 License.
 
 ## 🤝 Acknowledgments
-
+- **[iSET Lab](https://iset-lab.github.io/)**
+<!-- - **[iSET Lab](https://iset-lab.github.io/):** This project was developed as part of my research at the **Intelligent Systems and Emerging Technologies (iSET) Lab** at the University of Texas at Arlington. Special thanks to the lab and my supervisor for providing the hardware and resources necessary for this project. -->
 - **Hugging Face LeRobot** for the excellent hardware abstraction layer.
 - **MuJoCo** for the physics engine.
 
