@@ -189,7 +189,7 @@ The following link dimensions were measured and used to derive the Denavit-Harte
 
 ### 3. Forward and Inverse Kinematics
 
-The kinematics solutions and derivations are maintained privately. Local solution files are required to run the examples.
+The forward and inverse kinematics solutions, symbolic derivation, and calculation PDF are maintained privately and are not included in this repository. Running the kinematics examples requires local copies of these modules.
 
 ### 4. Differential Kinematics (Velocity Control)
 For smooth trajectory tracking, we use the Jacobian matrix $J(q)$ which relates joint velocities to end-effector spatial velocities:

@@ -141,3 +141,8 @@ Thumbs.db
 # Project specific
 calibration_files/
 *.log
+# Private kinematics solutions (keep local; do not publish)
+/src/kinematics/forward.py
+/src/kinematics/inverse.py
+/src/kinematics/jacobian_symbolic.py
+/docs/IK_Calculation.pdf
